@@ -21,7 +21,7 @@ The program is called as: python run.py [-h] optimization table
 ```
 
 ## License
-    Copyright (C) 2012-2015 Nejc Trdin
+    Copyright (C) 2015 Nejc Trdin
 
         This program is free software: you can redistribute it and/or modify
         it under the terms of the GNU General Public License as published by
