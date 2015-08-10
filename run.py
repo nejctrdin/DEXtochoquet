@@ -42,9 +42,9 @@ TABLES = {CONSTANT: _CONSTANT_TABLE,
          }
 
 _LP = "LP"
-_QP = "QP"
+_QCP = "QCP"
 
-OPTIMIZATIONS = {_LP, _QP}
+OPTIMIZATIONS = {_LP, _QCP}
 
 def getTable(tableType):
     return TABLES[tableType]
