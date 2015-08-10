@@ -1,0 +1,8 @@
+# python related
+*.pyc
+
+# vim swap
+*.swp
+
+# cplex log
+*.log
