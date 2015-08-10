@@ -154,18 +154,24 @@ def getChoquetCapacities(table, printProblem):
         # add the expression to the problem
         prob.quadratic_constraints.add(lin_expr=lConstraint, quad_expr=qConstraint, sense="E", rhs=0, name="row{0}".format(rowIndex))
         rowIndex += 1
-
-    prob.solve()
-
-    status = prob.solution.get_status()
-    humanStatus = prob.solution.status[prob.solution.get_status()]
     
-    values = {}
-    cols = prob.variables.get_names()
-    for j in range(len(cols)):
-        values[cols[j]] = prob.solution.get_values(j)
-
     if printProblem:
         print prob
 
-    return status, humanStatus, values
+    cols = prob.variables.get_names()
+    try:
+        prob.solve()
+        status = prob.solution.get_status()
+        humanStatus = prob.solution.status[prob.solution.get_status()]
+        
+        values = {}
+        for j in range(len(cols)):
+            values[cols[j]] = prob.solution.get_values(j)
+            
+        return status, humanStatus, values
+    except Exception as e:
+        print e.message
+
+        return -1, "Problem during execution", {v:-1 for v in cols}
+
+
