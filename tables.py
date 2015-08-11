@@ -1,6 +1,7 @@
 ADDITIVE = "ADDITIVE"
 COMPLEX = "COMPLEX"
 CONSTANT = "CONSTANT"
+SMALL = "SMALL"
 
 _ADDITIVE_TABLE = [[0, 0, 0],
                    [0, 1, 1],
@@ -32,9 +33,15 @@ _CONSTANT_TABLE = [[0, 0, 1],
                    [2, 1, 1],
                    [2, 2, 1]]
 
+_SMALL_TABLE = [[0, 0, 0],
+                [0, 1, 1],
+                [1, 0, 1],
+                [1, 1, 2]]
+
 TABLES = {CONSTANT: _CONSTANT_TABLE,
           ADDITIVE: _ADDITIVE_TABLE,
-          COMPLEX: _COMPLEX_TABLE
+          COMPLEX: _COMPLEX_TABLE,
+          SMALL: _SMALL_TABLE
          }
 
 def getTable(tableType):
