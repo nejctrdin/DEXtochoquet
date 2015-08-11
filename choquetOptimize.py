@@ -1,12 +1,15 @@
 from pulp import *
 import re
 import cplex
+import numpy as np
+from scipy.optimize import minimize
 
 EPS = 0.001
 _LP = "LP"
 _QCP = "QCP"
+_NLP = "NLP"
 
-OPTIMIZATIONS = {_LP, _QCP}
+OPTIMIZATIONS = {_LP, _QCP, _NLP}
 
 _NO_ROWS = "The table is not defined"
 _TABLE_EXPECTED = "The table must be of type list"
@@ -38,6 +41,8 @@ def getChoquetCapacities(table, programType):
         return getChoquetCapacitiesLP(table)
     elif programType == _QCP:
         return getChoquetCapacitiesQCP(table)
+    elif programType == _NLP:
+        return getChoquetCapacitiesNLP(table)
 
 def getChoquetCapacitiesLP(table):
     # create problem
@@ -333,3 +338,182 @@ def getChoquetCapacitiesQCP(table):
         return status, humanStatus, values
     except Exception as e:
         return -1, "Problem during execution ({0})!".format(str(e).replace("\n", "")), {v: 0 for v in cols}
+
+def getChoquetCapacitiesNLP(table):
+    # create problem
+    N = len(table[0]) - 1
+
+    variableMapping = {}
+    constraints = []
+    
+    variableIndex = 0
+    # create variables
+    for i in xrange(2 ** N):
+        s = bin(i)[2:]
+        s = "c{0}{1}".format("0" * (N - len(s)), s)
+        variableMapping[s] = i
+        constraints.append({"type": "ineq",
+                            "fun": lambda x: np.array([x[i]])})
+        print "{0} >= 0".format(s)
+        constraints.append({"type": "ineq",
+                            "fun": lambda x: np.array([1 - x[i]])})
+        print "1 - {0} >= 0".format(s)
+        variableIndex = i
+
+    variableIndex += 1
+
+    # normalization
+    maxiIndex = variableMapping["c{0}".format("1" * N)]
+    miniIndex = variableMapping["c{0}".format("0" * N)]
+    constraints.append({"type": "eq",
+                        "fun": lambda x: np.array([x[maxiIndex] - 1])})
+    print "{0} - 1 == 0".format("c{0}".format("1" * N))
+    constraints.append({"type": "eq",
+                        "fun": lambda x: np.array([x[miniIndex]])})
+    print "{0} == 0".format("c{0}".format("0" * N))
+
+    # monotonicity
+    for lower in list(variableMapping):
+        # for each variable specify the dominating variable
+        # each zero may be 1 and must dominate the particular lower variable
+        lowerIndex = variableMapping[lower]
+        indices = [m.start() for m in re.finditer("0", lower)]
+        for i in indices:
+            higher = "{0}1{1}".format(lower[:i], lower[i+1:])
+            higherIndex = variableMapping[higher]
+            constraints.append({"type": "ineq",
+                                "fun": lambda x: np.array([x[higherIndex] - x[lowerIndex]])})
+            print "{0} - {1} >= 0".format(higher, lower)
+             
+    # create a dictionary of output variables
+    mapping = {}
+    variables = []
+    column = 0
+
+    for column in xrange(N + 1):
+        current = {}
+        index = 0
+        for row in xrange(len(table)):
+            el = table[row][column]
+            if el not in current:
+                tmp = ""
+                if column == N:
+                    tmp = "d{0}{1}".format(index, column)
+                else:
+                    tmp = "v{0}{1}".format(index, column)
+                variableMapping[tmp] = variableIndex
+                constraints.append({"type": "ineq",
+                                    "fun": lambda x: np.array([x[variableIndex]])})
+                print "{0} >= 0".format(tmp)
+                constraints.append({"type": "ineq",
+                                    "fun": lambda x: np.array([100 - x[variableIndex]])})
+                print "100 - {0} >= 0".format(tmp)
+
+                variableIndex += 1
+                index += 1
+                current[el] = tmp
+                variables.append(tmp)
+
+        mapping[column] = current
+    
+    
+    for colIndex in mapping:
+        sort = sorted(list(mapping[colIndex]))
+        criterion = mapping[colIndex]
+        # specify that lower value means it is dominated by the higher value
+        for i in xrange(len(sort) - 1):
+            lower = criterion[sort[i]]
+            higher = criterion[sort[i + 1]]
+            #prob += lower + EPS <= higher
+            lowerIndex = variableMapping[lower]
+            higherIndex = variableMapping[higher]
+            constraints.append({"type": "ineq",
+                                "fun": lambda x: np.array([x[higherIndex] - x[lowerIndex] - EPS])})
+
+            print "{0} - {1} - {2} >= 0".format(higher, lower, EPS)
+
+    decisions = mapping[N]
+    maxDecisionIndex = variableMapping[decisions[max(decisions)]]
+    objective_function = lambda x: np.array([x[maxDecisionIndex]])  
+    
+
+    # integrating the decision table
+    for row in table:
+        rawCriteria, dec = row[:-1], row[-1]
+        decision = decisions[dec]
+        decisionIndex = variableMapping[decision]
+        criteria = []
+
+        for i in xrange(len(rawCriteria)):
+            criterionMap = mapping[i]
+            criteria.append(criterionMap[rawCriteria[i]])
+
+        # find the permutation which creates an increasing order of values
+        permutation = {}
+        for i in xrange(len(criteria)):
+            permutation[i] = i
+
+        sort = sorted(rawCriteria)
+        if rawCriteria != sort:
+            # must permute
+            index = 0
+            for c in rawCriteria:
+                permIndex = sort.index(c)
+                permutation[index] =  permIndex
+                index += 1
+                sort[permIndex] = -1
+        
+        # create choquet integral
+        ind1 = []
+        ind2 = []
+        val = []
+        products = []
+        funStr = ""
+        for i in xrange(0, N):
+            subset = ["0"] * N
+            # create the elements used for capacity
+            for j in xrange(i, N):
+                subset[permutation[j]] = "1"
+            # find the corresponding capacity for the selected elements
+            var = "c{0}".format("".join(subset))
+            varIndex = variableMapping[var]
+            if i==0:
+                # value for the i = -1 is by definition 0
+                # var * criteria[permutation[i]]
+                funStr += "{0}*{1} ".format(var, criteria[permutation[i]])
+                criterionIndex = variableMapping[criteria[permutation[i]]]
+                products.append((1, varIndex, criterionIndex))
+            else:
+                # var * (criteria[permutation[i]] - criteria[permutation[i-1]])
+                criterionIndex1 = variableMapping[criteria[permutation[i]]]
+                criterionIndex2 = variableMapping[criteria[permutation[i - 1]]]
+                products.append((1, varIndex, criterionIndex1))
+                products.append((-1, varIndex, criterionIndex2))
+                funStr += "+ {0}*{1} ".format(var, criteria[permutation[i]])
+                funStr += "- {0}*{1} ".format(var, criteria[permutation[i-1]])
+        
+        funStr += "- {0} == 0".format(decision)
+
+        constraint_function = lambda x: np.array([sum(sign*x[first]*x[second] for (sign, first, second) in products) - x[decisionIndex]])
+        print funStr
+        # add the expression to the problem
+        constraints.append({"type": "eq", "fun": constraint_function})
+
+    initialGuess = [0.5 for _ in xrange(len(variableMapping))]
+    initialGuess[variableMapping["c{0}".format("1" * N)]] = 1
+    initialGuess[variableMapping["c{0}".format("0" * N)]] = 0
+    res = minimize(objective_function,
+            initialGuess,
+            method="BFGS",
+            constraints=tuple(constraints),
+            #hess=lambda x:np.array([1]),
+            options={"disp": True},
+            #jac=lambda x:np.array([1])
+    )
+    
+    results = res.x
+    values = {}
+    for varName in variableMapping:
+        values[varName] = float(results[variableMapping[varName]])
+
+    return res.status, res.message, values

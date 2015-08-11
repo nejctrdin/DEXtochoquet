@@ -16,16 +16,16 @@ class TestChoquetOptimizations(unittest.TestCase):
                        [0, 1, 1],
                        [1, 0, 1],
                        [1, 1, 2]]
+    _EXPECTED_VALUES = {"c00": 0.0, "c01": 0.001, "c11": 1.0, "c10": 0.001,
+                      "d2": 1.0, "d0": 0.0, "d1": 0.001} 
 
     def test_additive_LP(self):
-        expectedValues = {"c00": 0.0, "c01": 0.001, "c11": 1.0, "c10": 0.001,
-                          "d2": 1.0, "d0": 0.0, "d1": 0.001} 
         status, namedStatus, values = choquetOptimize.getChoquetCapacities(self._ADDITIVE_TABLE,
                                                                            "LP")
 
         self.assertEqual(status, 1)
         self.assertEqual(namedStatus, "Optimal")
-        self.assertDictEqual(values, expectedValues)
+        self.assertDictEqual(values, self._EXPECTED_VALUES)
 
     def test_errors(self):
         with self.assertRaisesRegexp(Exception, self._TABLE_EXPECTED):
@@ -55,5 +55,12 @@ class TestChoquetOptimizations(unittest.TestCase):
         for v in values:
             self.assertEqual(values[v], 0)
 
+    def test_additive_NLP(self):
+        status, namedStatus, values = choquetOptimize.getChoquetCapacities(self._ADDITIVE_TABLE,
+                                                                           "NLP")
+        self.assertEqual(status, 0)
+        self.assertEqual(namedStatus, "Optimization terminated successfully.")
+        
+        #self.assertDictEqual(values, self._EXPECTED_VALUES)
 if __name__ == "__main__":
     unittest.main()
