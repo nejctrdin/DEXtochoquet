@@ -14,6 +14,7 @@ The program is called as: python run.py [-h] optimization table
   optimization: Selected optimization
                 LP
                 QCP
+                NLP
   table:        Selected table
                 ADDITIVE
                 CONSTANT
