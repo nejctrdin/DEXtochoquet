@@ -9,7 +9,7 @@ def printHelp(exitStatus, additionalText=""):
         print
     print "The program is called as: python run.py [-h] optimization table"
     print "  -h:\t\t Print help"
-    print "  optimization:\t Selected optimization\n\t\t LP\n\t\t QCP"
+    print "  optimization:\t Selected optimization\n\t\t LP\n\t\t QCP\n\t\t NLP"
     print "  table:\t Selected table\n\t\t ADDITIVE\n\t\t CONSTANT\n\t\t COMPLEX"
     sys.exit(exitStatus)
 
