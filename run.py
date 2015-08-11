@@ -1,5 +1,3 @@
-import choquetLP
-import choquetQP
 import tables
 import choquetOptimize
 import sys
@@ -38,10 +36,7 @@ def main(args):
     decisionTable = tables.getTable(tableType)
     statusCode, status, computed = [0] * 3
 
-    if optimization == choquetOptimize._LP:
-        statusCode, status, computed = choquetOptimize.getChoquetCapacitiesLP(decisionTable, False)
-    elif optimization == choquetOptimize._QCP:
-        statusCode, status, computed = choquetOptimize.getChoquetCapacitiesQCP(decisionTable, False)
+    statusCode, status, computed = choquetOptimize.getChoquetCapacities(decisionTable, optimization)
     
     print "The problem is: {0}".format(status)
     print 

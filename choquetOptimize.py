@@ -8,7 +8,38 @@ _QCP = "QCP"
 
 OPTIMIZATIONS = {_LP, _QCP}
 
-def getChoquetCapacitiesLP(table, printProblem):
+_NO_ROWS = "The table is not defined"
+_TABLE_EXPECTED = "The table must be of type list"
+_NOT_ENOUGH_ARGUMENTS = ("Table rows must have at least one argument "
+                         "and one output")
+_NOT_EQUAL_ROWS = "Rows in table must have equal length"
+_UNKNOWN_PROGRAM = "Unknown program type specified"
+
+def getChoquetCapacities(table, programType):
+    if type(table) is not list:
+        raise Exception(_TABLE_EXPECTED)
+
+    if len(table) == 0:
+        raise Exception(_NO_ROWS)
+
+    rowLength = len(table[0])
+
+    if rowLength < 2:
+        raise Exception(_NOT_ENOUGH_ARGUMENTS)
+
+    for row in table:
+        if len(row) != rowLength:
+            raise Exception(_NOT_EQUAL_ROWS)
+
+    if programType not in OPTIMIZATIONS:
+        raise Exception(_UNKNOWN_PROGRAM)
+
+    if programType == _LP:
+        return getChoquetCapacitiesLP(table)
+    elif programType == _QCP:
+        return getChoquetCapacitiesQCP(table)
+
+def getChoquetCapacitiesLP(table):
     # create problem
     N = len(table[0]) - 1
     variables = {}
@@ -126,9 +157,6 @@ def getChoquetCapacitiesLP(table, printProblem):
         # add the expression to the problem
         prob += expression == decision
    
-    if printProblem:
-        print prob
-
     # solving
     status = GLPK().solve(prob)
 
@@ -141,7 +169,7 @@ def getChoquetCapacitiesLP(table, printProblem):
     return status, LpStatus[status], values
 
 
-def getChoquetCapacitiesQCP(table, printProblem):
+def getChoquetCapacitiesQCP(table):
     # create problem
     N = len(table[0]) - 1
     variables = []
@@ -292,9 +320,6 @@ def getChoquetCapacitiesQCP(table, printProblem):
         prob.quadratic_constraints.add(lin_expr=lConstraint, quad_expr=qConstraint, sense="E", rhs=0, name="row{0}".format(rowIndex))
         rowIndex += 1
     
-    if printProblem:
-        print prob
-
     cols = prob.variables.get_names()
     try:
         prob.solve()
@@ -307,6 +332,4 @@ def getChoquetCapacitiesQCP(table, printProblem):
             
         return status, humanStatus, values
     except Exception as e:
-        print e.message
-
-        return -1, "Problem during execution", {v: 0 for v in cols}
+        return -1, "Problem during execution ({0})!".format(str(e).replace("\n", "")), {v: 0 for v in cols}
