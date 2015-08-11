@@ -6,3 +6,6 @@
 
 # cplex log
 *.log
+
+# working files
+files/*
