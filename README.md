@@ -35,3 +35,7 @@ The program is called as: python run.py [-h] optimization table
 
         You should have received a copy of the GNU General Public License
         along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+## TODO
+
+- Add a non-linear programming solver option (with `scipy.optimize` or `knitro`)
