@@ -1,53 +1,9 @@
 import choquetLP
 import choquetQP
+import tables
+import choquetOptimize
 import sys
 
-ADDITIVE = "ADDITIVE"
-COMPLEX = "COMPLEX"
-CONSTANT = "CONSTANT"
-
-_ADDITIVE_TABLE = [[0, 0, 0],
-                   [0, 1, 1],
-                   [0, 2, 2],
-                   [1, 0, 1],
-                   [1, 1, 2],
-                   [1, 2, 3],
-                   [2, 0, 2],
-                   [2, 1, 3],
-                   [2, 2, 4]]
-
-_COMPLEX_TABLE = [[0, 0, 0],
-                  [0, 1, 1],
-                  [0, 2, 1.5],
-                  [1, 0, 1],
-                  [1, 1, 2.5],
-                  [1, 2, 3.5],
-                  [2, 0, 1.5],
-                  [2, 1, 2.5],
-                  [2, 2, 4]]
-
-_CONSTANT_TABLE = [[0, 0, 1],
-                   [0, 1, 1],
-                   [0, 2, 1],
-                   [1, 0, 1],
-                   [1, 1, 1],
-                   [1, 2, 1],
-                   [2, 0, 1],
-                   [2, 1, 1],
-                   [2, 2, 1]]
-
-TABLES = {CONSTANT: _CONSTANT_TABLE,
-          ADDITIVE: _ADDITIVE_TABLE,
-          COMPLEX: _COMPLEX_TABLE
-         }
-
-_LP = "LP"
-_QCP = "QCP"
-
-OPTIMIZATIONS = {_LP, _QCP}
-
-def getTable(tableType):
-    return TABLES[tableType]
 
 def printHelp(exitStatus, additionalText=""):
     if additionalText:
@@ -67,25 +23,25 @@ def main(args):
         printHelp(1, "Incorrect number of arguments")
     
     optimization, tableType = args[1:3]
-    if tableType not in TABLES:
+    if tableType not in tables.TABLES:
         printHelp(2, 
                   ("Selected table type ({0}) is not available! "
                    "Possible options are {1}.").format(tableType,
-                                                       sorted(list(TABLES))))
+                                                       sorted(list(tables.TABLES))))
 
-    if optimization not in OPTIMIZATIONS:
+    if optimization not in choquetOptimize.OPTIMIZATIONS:
         printHelp(2, 
                   ("Selected optimization type ({0}) is not available! " 
                    "Possible options are {1}.").format(optimization,
-                                                      sorted(list(OPTIMIZATIONS))))
+                                                      sorted(list(choquetOptimize.OPTIMIZATIONS))))
 
-    decisionTable = getTable(tableType)
+    decisionTable = tables.getTable(tableType)
     statusCode, status, computed = [0] * 3
 
-    if optimization == "LP":
-        statusCode, status, computed = choquetLP.getChoquetCapacities(decisionTable, False)
-    else:
-        statusCode, status, computed = choquetQP.getChoquetCapacities(decisionTable, False)
+    if optimization == choquetOptimize._LP:
+        statusCode, status, computed = choquetOptimize.getChoquetCapacitiesLP(decisionTable, False)
+    elif optimization == choquetOptimize._QCP:
+        statusCode, status, computed = choquetOptimize.getChoquetCapacitiesQCP(decisionTable, False)
     
     print "The problem is: {0}".format(status)
     print 
