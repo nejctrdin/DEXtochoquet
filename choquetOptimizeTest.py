@@ -9,7 +9,9 @@ class TestChoquetOptimizations(unittest.TestCase):
                              "and one output")
     _NOT_EQUAL_ROWS = "Rows in table must have equal length"
     _UNKNOWN_PROGRAM = "Unknown program type specified"
-    
+    _QCP_ERROR = ("Problem during execution (CPLEX Error  5002: Q in 'row0' "
+                  "is not positive semi-definite.)!")
+
     _ADDITIVE_TABLE = [[0, 0, 0],
                        [0, 1, 1],
                        [1, 0, 1],
@@ -44,6 +46,14 @@ class TestChoquetOptimizations(unittest.TestCase):
         with self.assertRaisesRegexp(Exception, self._UNKNOWN_PROGRAM):
             choquetOptimize.getChoquetCapacities([[1, 1, 2], [2, 3, 4]], "P")
 
+    def test_additive_QCP(self):
+        status, namedStatus, values = choquetOptimize.getChoquetCapacities(self._ADDITIVE_TABLE,
+                                                                           "QCP")
+        self.assertEqual(status, -1)
+        self.assertEqual(namedStatus, self._QCP_ERROR)
+        
+        for v in values:
+            self.assertEqual(values[v], 0)
 
 if __name__ == "__main__":
     unittest.main()
